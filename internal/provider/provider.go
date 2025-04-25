@@ -1,101 +1,133 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
 	"context"
-	"net/http"
+	"os"
+	"terraform-provider-devops-bootcamp/internal/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
-	"github.com/hashicorp/terraform-plugin-framework/function"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
-// Ensure ScaffoldingProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaffoldingProvider{}
-var _ provider.ProviderWithFunctions = &ScaffoldingProvider{}
-var _ provider.ProviderWithEphemeralResources = &ScaffoldingProvider{}
+// Ensure bootcampProvider satisfies various provider interfaces.
+var _ provider.Provider = &bootcampProvider{}
 
-// ScaffoldingProvider defines the provider implementation.
-type ScaffoldingProvider struct {
-	// version is set to the provider version on release, "dev" when the
-	// provider is built and ran locally, and "test" when running acceptance
-	// testing.
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &bootcampProvider{
+			version: version,
+		}
+	}
+}
+
+// bootcampProviderModel describes the provider data model.
+type bootcampProviderModel struct {
+	Host types.String `tfsdk:"host"`
+}
+
+// bootcampProvider defines the provider implementation.
+type bootcampProvider struct {
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type ScaffoldingProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
-}
-
-func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+func (p *bootcampProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "devops-bootcamp"
 	resp.Version = p.version
 }
 
-func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *bootcampProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
+			"host": schema.StringAttribute{
+				MarkdownDescription: "The host of the bootcamp API",
 				Optional:            true,
 			},
 		},
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+// retrieves values fron configuration
+// checks for unknown config values
+// retrieves values from env variables
+// creates API client
+// stores configured client for data source and resource usage
+func (p *bootcampProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	tflog.Info(ctx, "Configuring Bootcamp client")
+	// retrieve config values
+	var config bootcampProviderModel
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if config.Host.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("host"),
+			"Unknown Bootcamp API Host",
+			"The provider cannot create the Bootcamp API client as there is an unknown configuration value for the Bootcamp API host. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the BOOTCAMP_HOST environment variable.",
+		)
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Configuration values are now available.
-	// if data.Endpoint.IsNull() { /* ... */ }
+	host := os.Getenv("BOOTCAMP_HOST")
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
+	if !config.Host.IsNull() {
+		host = config.Host.ValueString()
+	}
+
+	if host == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("host"),
+			"Missing Bootcamp API Host",
+			"The provider cannot create the Bootcamp API client as there is a missing or empty value for the Bootcamp API host. "+
+				"Set the host value in the configuration or use the BOOTCAMP_HOST environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	ctx = tflog.SetField(ctx, "bootcamp_host", host)
+	tflog.Debug(ctx, "Creating Bootcamp client")
+
+	client, err := client.NewClient(&host)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Create Bootcamp API Client",
+			"An unexpected error occurred when creating the bootcamp API client. "+
+				"Bootcamp Client Error: "+err.Error(),
+		)
+		return
+	}
+
 	resp.DataSourceData = client
 	resp.ResourceData = client
+
+	tflog.Info(ctx, "Configured Bootcamp client", map[string]any{"success": true})
 }
 
-func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *bootcampProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewExampleResource,
+		//NewEngineerResource,
+		//NewDevResource,
 	}
 }
 
-func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
-	}
-}
-
-func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *bootcampProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewExampleDataSource,
-	}
-}
-
-func (p *ScaffoldingProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
-}
-
-func New(version string) func() provider.Provider {
-	return func() provider.Provider {
-		return &ScaffoldingProvider{
-			version: version,
-		}
+		NewEngineerDataSource,
+		//NewDevDataSource,
 	}
 }

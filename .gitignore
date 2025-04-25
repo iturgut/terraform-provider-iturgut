@@ -33,3 +33,31 @@ website/vendor
 
 # Keep windows files with windows line endings
 *.winfile eol=crlf
+
+terraform-provider-devops-bootcamp
+
+# Terraform provider cache
+.terraform
+.terraform.lock.hcl
+
+# Terraform cache
+.terraformrc
+
+# Terraform state
+*.tfstate
+*.tfstate.backup
+
+# Terraform plugins
+.terraform.d
+
+# Terraform plugins cache
+.terraform.d/plugin-cache
+
+# Terraform plugins cache
+.terraform.d/plugin-cache
+.terraform.d/plugin-cache/*
+.terraform.d/plugin-cache/*/*
+.terraform.d/plugin-cache/*/*/*
+
+# Terraform plugins cache
+.terraform.d/plugin-cache/*/*/*/*
