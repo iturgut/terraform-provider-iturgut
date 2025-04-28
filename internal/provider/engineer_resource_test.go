@@ -5,81 +5,52 @@ package provider
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
-	"github.com/hashicorp/terraform-plugin-testing/statecheck"
-	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 )
 
+// TestAccEngineerResource tests the basic CRUD operations for the engineer resource
 func TestAccEngineerResource(t *testing.T) {
+	// Skip this test if we're not running acceptance tests
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Set TF_ACC=1 to run acceptance tests")
+	}
+
+	// Use a unique email for this test to avoid conflicts
+	testEmail := fmt.Sprintf("test.%d@example.com", os.Getpid())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccExampleResourceConfig("one"),
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"scaffolding_example.test",
-						tfjsonpath.New("id"),
-						knownvalue.StringExact("example-id"),
-					),
-					statecheck.ExpectKnownValue(
-						"scaffolding_example.test",
-						tfjsonpath.New("defaulted"),
-						knownvalue.StringExact("example value when not configured"),
-					),
-					statecheck.ExpectKnownValue(
-						"scaffolding_example.test",
-						tfjsonpath.New("configurable_attribute"),
-						knownvalue.StringExact("one"),
-					),
-				},
+				Config: testAccEngineerResourceConfig("Test Engineer", testEmail),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("devops-bootcamp_engineer_resource.test", "name", "Test Engineer"),
+					resource.TestCheckResourceAttr("devops-bootcamp_engineer_resource.test", "email", testEmail),
+					resource.TestCheckResourceAttrSet("devops-bootcamp_engineer_resource.test", "id"),
+				),
 			},
 			// ImportState testing
 			{
-				ResourceName:      "scaffolding_example.test",
+				ResourceName:      "devops-bootcamp_engineer_resource.test",
 				ImportState:       true,
 				ImportStateVerify: true,
-				// This is not normally necessary, but is here because this
-				// example code does not have an actual upstream service.
-				// Once the Read method is able to refresh information from
-				// the upstream service, this can be removed.
-				ImportStateVerifyIgnore: []string{"configurable_attribute", "defaulted"},
-			},
-			// Update and Read testing
-			{
-				Config: testAccExampleResourceConfig("two"),
-				ConfigStateChecks: []statecheck.StateCheck{
-					statecheck.ExpectKnownValue(
-						"scaffolding_example.test",
-						tfjsonpath.New("id"),
-						knownvalue.StringExact("example-id"),
-					),
-					statecheck.ExpectKnownValue(
-						"scaffolding_example.test",
-						tfjsonpath.New("defaulted"),
-						knownvalue.StringExact("example value when not configured"),
-					),
-					statecheck.ExpectKnownValue(
-						"scaffolding_example.test",
-						tfjsonpath.New("configurable_attribute"),
-						knownvalue.StringExact("two"),
-					),
-				},
 			},
 			// Delete testing automatically occurs in TestCase
 		},
 	})
 }
 
-func testAccEngineerResourceConfig(configurableAttribute string) string {
+// Helper function to generate test configuration for a single engineer resource
+func testAccEngineerResourceConfig(name, email string) string {
 	return fmt.Sprintf(`
-resource "scaffolding_example" "test" {
-  configurable_attribute = %[1]q
+resource "devops-bootcamp_engineer_resource" "test" {
+  name  = %[1]q
+  email = %[2]q
 }
-`, configurableAttribute)
+`, name, email)
 }

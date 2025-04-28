@@ -10,13 +10,16 @@
    host = "http://localhost:8080"
  }
 
+ resource "devops-bootcamp_engineer_resource" "example" {
+  name = "Conor"
+  email = "conor@liatr.io"
+}
+
  data "devops-bootcamp_engineer_data_source" "example" {
-  // gets the engineer with id "NFA2Z"
-   id = "NFA2Z"
+   id = "G6R3N"
  }
 
  output "first_engineer" {
-  // returns the name of the engineer with id "NFA2Z"
-   value = data.devops-bootcamp_engineer_data_source.example.name
+   value = data.devops-bootcamp_engineer_data_source.example
  }
    

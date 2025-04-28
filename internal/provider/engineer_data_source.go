@@ -105,19 +105,9 @@ func (d *EngineerDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 	data = engineerState
 
-	// Write logs using the tflog package
 	tflog.Trace(ctx, "read engineers data source")
 
 	diags := resp.State.Set(ctx, &data)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Write logs using the tflog package
-	tflog.Trace(ctx, "read engineers data source")
-
-	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

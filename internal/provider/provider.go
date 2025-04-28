@@ -25,12 +25,10 @@ func New(version string) func() provider.Provider {
 	}
 }
 
-// bootcampProviderModel describes the provider data model.
 type bootcampProviderModel struct {
 	Host types.String `tfsdk:"host"`
 }
 
-// bootcampProvider defines the provider implementation.
 type bootcampProvider struct {
 	version string
 }
@@ -58,7 +56,6 @@ func (p *bootcampProvider) Schema(ctx context.Context, req provider.SchemaReques
 // stores configured client for data source and resource usage
 func (p *bootcampProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	tflog.Info(ctx, "Configuring Bootcamp client")
-	// retrieve config values
 	var config bootcampProviderModel
 	diags := req.Config.Get(ctx, &config)
 	resp.Diagnostics.Append(diags...)
@@ -120,7 +117,7 @@ func (p *bootcampProvider) Configure(ctx context.Context, req provider.Configure
 
 func (p *bootcampProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		//NewEngineerResource,
+		NewEngineerResource,
 		//NewDevResource,
 	}
 }

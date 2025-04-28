@@ -1,23 +1,23 @@
  terraform {
-   required_providers {
-     devops-bootcamp = {
-       source = "liatr.io/terraform/devops-bootcamp"
-     }
-   }
- }
+  required_providers {
+    devops-bootcamp = {
+      source = "liatr.io/terraform/devops-bootcamp"
+    }
+  }
+}
 
- provider "devops-bootcamp" {
-   # example configuration here
-   host = "http://localhost:8080"
- }
+provider "devops-bootcamp" {
+  # example configuration here
+  host = "http://localhost:8080"
+}
 
- data "devops-bootcamp_engineer_data_source" "example" {
-   # No configuration needed - this data source returns all engineers
-   id = "NFA2Z"
- }
+resource "devops-bootcamp_engineer_resource" "example" {
+  # No configuration needed - this data source returns all engineers
+  name = "Conor"
+  email = "conor@liatr.io"
+}
 
- # Access the engineers data
- output "first_engineer" {
-   value = data.devops-bootcamp_engineer_data_source.example.name
- }
-   
+# Access the engineers data
+output "first_engineer" {
+  value = resource.devops-bootcamp_engineer_resource.example.name
+}

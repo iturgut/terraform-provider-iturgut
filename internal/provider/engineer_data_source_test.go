@@ -17,14 +17,18 @@ func TestAccEngineerDataSource(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Read testing
+			// Create a resource first
 			{
-				Config: testAccExampleDataSourceConfig,
+				Config: testAccEngineerDataSourceSetup,
+			},
+			// Then test the data source
+			{
+				Config: testAccEngineerDataSourceConfig,
 				ConfigStateChecks: []statecheck.StateCheck{
 					statecheck.ExpectKnownValue(
-						"data.scaffolding_example.test",
-						tfjsonpath.New("id"),
-						knownvalue.StringExact("example-id"),
+						"data.devops-bootcamp_engineer_data_source.test",
+						tfjsonpath.New("name"),
+						knownvalue.StringExact("Test Engineer"),
 					),
 				},
 			},
@@ -32,8 +36,20 @@ func TestAccEngineerDataSource(t *testing.T) {
 	})
 }
 
+const testAccEngineerDataSourceSetup = `
+resource "devops-bootcamp_engineer_resource" "test" {
+  name  = "Test Engineer"
+  email = "test.datasource@example.com"
+}
+`
+
 const testAccEngineerDataSourceConfig = `
-data "scaffolding_example" "test" {
-  configurable_attribute = "example"
+resource "devops-bootcamp_engineer_resource" "test" {
+  name  = "Test Engineer"
+  email = "test.datasource@example.com"
+}
+
+data "devops-bootcamp_engineer_data_source" "test" {
+  id = devops-bootcamp_engineer_resource.test.id
 }
 `
